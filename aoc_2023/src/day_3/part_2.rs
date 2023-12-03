@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 const NEIGHBOR_RANGE: [i8; 3] = [-1, 0, 1];
 
 #[derive(Debug, Clone)]
@@ -38,6 +40,20 @@ impl PartialEq for Position {
 struct Cell {
   position: Position,
   value: char,
+}
+
+impl Cell {
+  fn is_valid_symbol(&self) -> bool {
+    self.value != '.' && !self.value.is_digit(10)
+  }
+
+  fn is_gear(&self) -> bool {
+    self.value == '*'
+  }
+
+  fn is_digit(&self) -> bool {
+    self.value.is_digit(10)
+  }
 }
 
 impl PartialEq for Cell {
@@ -85,8 +101,22 @@ impl<'a> GridNumber<'a> {
     self
       .get_neighbors(grid)
       .into_iter()
-      .filter(|neighbor| neighbor.value != '.' && !neighbor.value.is_digit(10))
+      .filter(|neighbor| neighbor.is_valid_symbol())
       .collect::<Vec<_>>()
+  }
+
+  fn get_gear_neighbors(&self, grid: &'a Grid) -> Vec<&Cell> {
+    self
+      .get_neighbors(grid)
+      .into_iter()
+      .filter(|neighbor| neighbor.is_gear())
+      .collect::<Vec<_>>()
+  }
+}
+
+impl<'a> PartialEq for GridNumber<'a> {
+  fn eq(&self, other: &Self) -> bool {
+    self.cells == other.cells && self.get_total() == other.get_total()
   }
 }
 
@@ -150,7 +180,7 @@ impl Grid {
   }
 
   // It is assumed that target_cell is a cell in this Grid
-  pub fn get_cell_neighbors(&self, target_cell: &Cell) -> Vec<&Cell> {
+  fn get_cell_neighbors(&self, target_cell: &Cell) -> Vec<&Cell> {
     self
       .get_valid_neighbor_positions(&target_cell)
       .into_iter()
@@ -199,8 +229,6 @@ impl Grid {
           cell_buffer = Vec::new();
         }
       }
-
-      // cell_buffer = Vec::new();
     }
 
     result
@@ -222,7 +250,57 @@ impl Grid {
   }
 
   fn get_valid_grid_number_gear_ratio_sum(&self) -> u32 {
-    0
+    let gridnumbers = self.get_grid_numbers();
+
+    let gear_gridnumber_neighbors = self
+      .cells
+      .iter()
+      // Get gear symbol cells
+      .filter(|cell| cell.is_gear())
+      // Find adjacent gridnumbers
+      .fold(Vec::new(), |mut acc, cell| {
+        let gridnumber_neighbors: Vec<&GridNumber<'_>> = self
+          .get_cell_neighbors(cell)
+          .iter()
+          .filter(|cell| cell.is_digit())
+          // map digit cells to gridnumber
+          .map(|cell| {
+            gridnumbers
+              .iter()
+              .find(|gridnumber| gridnumber.cells.contains(cell))
+              .unwrap()
+          })
+          // de-dupe
+          .fold(Vec::new(), |mut acc, gridnumber| {
+            if !acc.contains(&gridnumber) {
+              acc.push(gridnumber);
+            }
+
+            acc
+          });
+
+        acc.push(gridnumber_neighbors);
+
+        acc
+      });
+
+    let total = gear_gridnumber_neighbors
+      .iter()
+      .filter(|neighbors| neighbors.len() == 2)
+      .fold(0, |acc, neighbors| {
+        acc
+          + neighbors.iter().fold(0, |acc, neighbor| {
+            let neighbor_total = neighbor.get_total();
+
+            if acc == 0 {
+              neighbor_total
+            } else {
+              acc * neighbor_total
+            }
+          })
+      });
+
+    total
   }
 }
 
@@ -230,24 +308,24 @@ impl Grid {
 pub fn run(contents: &str) -> u32 {
   let grid = Grid::from_raw_contents(contents);
 
-  grid.get_valid_grid_number_sum()
+  grid.get_valid_grid_number_gear_ratio_sum()
 }
 
 #[cfg(test)]
 mod tests {
+  use crate::utils::read_input;
+
   #[test]
   pub fn day_3_part_2_example_works() {
-    let contents =
-      crate::utils::read_input(super::super::constants::PART_1_EXAMPLE_INPUT_FILENAME).unwrap();
+    let contents = read_input(super::super::constants::PART_1_EXAMPLE_INPUT_FILENAME).unwrap();
     let result = super::run(&contents);
     assert_eq!(result, 467835);
   }
 
-  // #[test]
-  // pub fn day_3_part_1_solution_works() {
-  //   let contents = crate::utils::read_input(super::super::constants::INPUT_FILENAME).unwrap();
-  //   let result = super::run(&contents);
-  //   assert!(result > 560570);
-  //   assert_eq!(result, 560670);
-  // }
+  #[test]
+  pub fn day_3_part_2_solution_works() {
+    let contents = read_input(super::super::constants::INPUT_FILENAME).unwrap();
+    let result = super::run(&contents);
+    assert_eq!(result, 91622824);
+  }
 }
