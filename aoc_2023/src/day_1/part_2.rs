@@ -54,7 +54,7 @@ fn find_digit_in_slices(slices: Vec<&str>) -> Option<usize> {
   None
 }
 
-fn process_line(line: &str) -> usize {
+fn process_line(line: &str) -> u32 {
   // Search for first number
   let first = {
     let forward_slices = (0..line.len())
@@ -88,7 +88,7 @@ fn process_line(line: &str) -> usize {
     let result_as_string = format!("{}{}", first.unwrap(), last.unwrap());
 
     // I can probably assume unwrapping is okay here
-    result_as_string.parse::<usize>().unwrap()
+    result_as_string.parse::<u32>().unwrap()
   } else {
     0
   }
@@ -100,7 +100,7 @@ fn process_line(line: &str) -> usize {
 // wrong: 43684
 // wrong: 53222
 // correct: 55260
-pub fn run(contents: &str) -> usize {
+pub fn run(contents: &str) -> u32 {
   contents
     .lines()
     .into_iter()

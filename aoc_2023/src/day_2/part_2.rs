@@ -51,6 +51,10 @@ impl Handful {
       && self.green_cubes <= MAX_GREEN_CUBES
       && self.blue_cubes <= MAX_BLUE_CUBES
   }
+
+  pub fn power(&self) -> u32 {
+    self.red_cubes * self.green_cubes * self.blue_cubes
+  }
 }
 
 #[derive(Debug)]
@@ -87,16 +91,41 @@ impl Game {
       .find(|handful| !handful.is_valid())
       .is_none()
   }
+
+  pub fn min_cube_set(&self) -> Handful {
+    let mut result = Handful {
+      red_cubes: 0,
+      green_cubes: 0,
+      blue_cubes: 0,
+    };
+
+    for handful in self.handfuls.iter() {
+      if handful.red_cubes > result.red_cubes {
+        result.red_cubes = handful.red_cubes;
+      }
+
+      if handful.green_cubes > result.green_cubes {
+        result.green_cubes = handful.green_cubes;
+      }
+
+      if handful.blue_cubes > result.blue_cubes {
+        result.blue_cubes = handful.blue_cubes;
+      }
+    }
+
+    result
+  }
 }
 
 pub fn run(contents: &str) -> u32 {
   let games = contents
     .lines()
     .map(|line| Game::from_line(line))
-    .filter(|game| game.is_valid())
     .collect::<Vec<_>>();
 
-  let total = games.iter().fold(0, |acc, game| acc + game.id);
+  let total = games
+    .iter()
+    .fold(0, |acc, game| acc + game.min_cube_set().power());
 
   total
 }
