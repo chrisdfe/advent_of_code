@@ -129,3 +129,21 @@ pub fn run(contents: &str) -> u32 {
 
   total
 }
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  pub fn example_works() {
+    let contents =
+      crate::utils::read_input(super::super::constants::PART_1_EXAMPLE_INPUT_FILENAME).unwrap();
+    let result = super::run(&contents);
+    assert_eq!(result, 2286);
+  }
+
+  #[test]
+  pub fn solution_works() {
+    let contents = crate::utils::read_input(super::super::constants::INPUT_FILENAME).unwrap();
+    let result = super::run(&contents);
+    assert_eq!(result, 77607);
+  }
+}
