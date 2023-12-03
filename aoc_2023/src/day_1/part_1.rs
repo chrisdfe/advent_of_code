@@ -1,11 +1,9 @@
-fn part_1_process_line(line: &str) -> usize {
+fn process_line(line: &str) -> usize {
   let numbers: Vec<usize> = line
     .chars()
     .into_iter()
     .fold(Vec::new(), |mut acc, char| {
-      let char_string = char.to_string();
-
-      match char_string.parse::<usize>() {
+      match char.to_string().parse::<usize>() {
         Ok(char_string_as_uint) => {
           acc.push(char_string_as_uint);
           acc
@@ -16,8 +14,8 @@ fn part_1_process_line(line: &str) -> usize {
 
   let first_and_last = match numbers.len() {
     n if n >= 2 => {
-      let first = numbers[0];
-      let last = numbers[numbers.len() - 1];
+      let first = *numbers.first().unwrap();
+      let last = *numbers.last().unwrap();
 
       Some((first, last))
     }
@@ -35,9 +33,12 @@ fn part_1_process_line(line: &str) -> usize {
   }
 }
 
+// part 1 too low: 36819
+// part 1 too low: 37078
+// part 1 correct: 55123
 pub fn run(contents: &str) -> usize {
-  contents.lines().into_iter().fold(0, |acc, line| {
-    let result = part_1_process_line(line);
-    acc + result
-  })
+  contents
+    .lines()
+    .into_iter()
+    .fold(0, |acc, line| acc + process_line(line))
 }
