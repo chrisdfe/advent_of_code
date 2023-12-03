@@ -5,7 +5,8 @@ mod utils;
 
 fn main() -> Result<(), std::io::Error> {
   // day_1::run()?;
-  day_2::run()?;
+  // day_2::run()?;
+  day_3::run()?;
 
   Ok(())
 }

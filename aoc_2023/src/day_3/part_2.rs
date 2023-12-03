@@ -133,14 +133,21 @@ impl Grid {
       })
   }
 
-  /*
-  pub fn find_cell_at_position(&self, position: &Position) -> Option<&Cell> {
-    self
-      .cells
-      .iter()
-      .find(|cell| cell.position == *position)
+  fn get_valid_neighbor_positions(&self, cell: &Cell) -> Vec<Position> {
+    let max_position = self.get_max_position();
+
+    cell
+      .position
+      .get_neighbor_positions()
+      .into_iter()
+      .filter(|position| {
+        position.x >= 0
+          && position.y >= 0
+          && position.x <= max_position.x
+          && position.y <= max_position.y
+      })
+      .collect::<Vec<_>>()
   }
-  */
 
   // It is assumed that target_cell is a cell in this Grid
   pub fn get_cell_neighbors(&self, target_cell: &Cell) -> Vec<&Cell> {
@@ -159,35 +166,6 @@ impl Grid {
         result
       })
       .collect::<Vec<_>>()
-  }
-
-  fn get_valid_neighbor_positions(&self, cell: &Cell) -> Vec<Position> {
-    let max_position = self.get_max_position();
-
-    cell
-      .position
-      .get_neighbor_positions()
-      .into_iter()
-      .filter(|position| {
-        position.x >= 0
-          && position.y >= 0
-          && position.x <= max_position.x
-          && position.y <= max_position.y
-      })
-      .collect::<Vec<_>>()
-  }
-
-  fn get_lines(&self) -> Vec<i32> {
-    self
-      .cells
-      .iter()
-      .fold(Vec::new(), |mut acc, cell| {
-        if !acc.contains(&cell.position.y) {
-          acc.push(cell.position.y.clone());
-        }
-
-        acc
-      })
   }
 
   fn get_cells_grouped_by_line(&self) -> Vec<Vec<&Cell>> {
@@ -242,6 +220,10 @@ impl Grid {
       .into_iter()
       .fold(0, |acc, grid_number| acc + grid_number.get_total())
   }
+
+  fn get_valid_grid_number_gear_ratio_sum(&self) -> u32 {
+    0
+  }
 }
 
 // too low: 560570
@@ -254,18 +236,18 @@ pub fn run(contents: &str) -> u32 {
 #[cfg(test)]
 mod tests {
   #[test]
-  pub fn day_3_part_1_example_works() {
+  pub fn day_3_part_2_example_works() {
     let contents =
       crate::utils::read_input(super::super::constants::PART_1_EXAMPLE_INPUT_FILENAME).unwrap();
     let result = super::run(&contents);
-    assert_eq!(result, 4361);
+    assert_eq!(result, 467835);
   }
 
-  #[test]
-  pub fn day_3_part_1_solution_works() {
-    let contents = crate::utils::read_input(super::super::constants::INPUT_FILENAME).unwrap();
-    let result = super::run(&contents);
-    assert!(result > 560570);
-    assert_eq!(result, 560670);
-  }
+  // #[test]
+  // pub fn day_3_part_1_solution_works() {
+  //   let contents = crate::utils::read_input(super::super::constants::INPUT_FILENAME).unwrap();
+  //   let result = super::run(&contents);
+  //   assert!(result > 560570);
+  //   assert_eq!(result, 560670);
+  // }
 }
