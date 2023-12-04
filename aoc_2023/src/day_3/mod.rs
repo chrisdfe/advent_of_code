@@ -311,6 +311,7 @@ pub fn part_2(contents: &str) -> u32 {
 }
 
 pub fn run() -> Result<(), Error> {
+  println!("running day 3");
   println!("reading contents of {}", INPUT_FILENAME);
   let contents = read_input(INPUT_FILENAME)?;
 

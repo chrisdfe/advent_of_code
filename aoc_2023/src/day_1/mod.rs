@@ -7,10 +7,8 @@ mod part_2;
 use crate::utils::read_input;
 use constants::{INPUT_FILENAME, PART_2_EXAMPLE_INPUT};
 
-// part 1 too low: 36819
-// part 1 too low: 37078
-// part 1 correct: 55123
 pub fn run() -> Result<(), Error> {
+  println!("running day 1");
   println!("reading contents of {}", INPUT_FILENAME);
   let contents = read_input(INPUT_FILENAME)?;
 

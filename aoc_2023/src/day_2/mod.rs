@@ -8,6 +8,7 @@ use crate::utils::read_input;
 use constants::{INPUT_FILENAME, PART_1_EXAMPLE_INPUT_FILENAME};
 
 pub fn run() -> Result<(), Error> {
+  println!("running day 2");
   println!("reading contents of {}", INPUT_FILENAME);
   let contents = read_input(INPUT_FILENAME)?;
 
