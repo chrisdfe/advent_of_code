@@ -1,13 +1,12 @@
 use itertools::Itertools;
-use std::io::Error;
+use std::{collections::HashMap, io::Error};
 
 use crate::utils::read_input;
 
 pub const INPUT_FILENAME: &'static str = "./src/day_3/input.txt";
 pub const EXAMPLE_INPUT_FILENAME: &'static str = "./src/day_3/example_input.txt";
 
-const NEIGHBOR_RANGE: [i8; 3] = [-1, 0, 1];
-
+// Cloneable struct representing an abstract 2D
 #[derive(Debug, Clone)]
 struct Position {
   x: i32,
@@ -19,20 +18,26 @@ impl Position {
     Position { x: 0, y: 0 }
   }
 
-  #[rustfmt::skip]
   fn get_neighbor_positions(&self) -> [Position; 8] {
+    let Position { x, y } = *self;
+
     [
-      Position { x: self.x - 1, y: self.y - 1},
-      Position { x: self.x, y: self.y - 1},
-      Position { x: self.x + 1, y: self.y - 1},
-      
-      Position { x: self.x - 1, y: self.y },
-      Position { x: self.x + 1, y: self.y },
-      
-      Position { x: self.x - 1, y: self.y + 1},
-      Position { x: self.x, y: self.y + 1},
-      Position { x: self.x + 1, y: self.y + 1},
+      // top row
+      Position { x: x - 1, y: y - 1 },
+      Position { x, y: y - 1 },
+      Position { x: x + 1, y: y - 1 },
+      // center row
+      Position { x: x - 1, y },
+      Position { x: x + 1, y },
+      // bottom row
+      Position { x: x - 1, y: y + 1 },
+      Position { x, y: y + 1 },
+      Position { x: x + 1, y: y + 1 },
     ]
+  }
+
+  fn as_key(&self) -> String {
+    format!("{}:{}", self.x, self.y)
   }
 }
 
@@ -42,7 +47,8 @@ impl PartialEq for Position {
   }
 }
 
-#[derive(Debug)]
+// A single cell of a grid. Only 1 cell per position exists
+#[derive(Debug, Clone)]
 struct Cell {
   position: Position,
   value: char,
@@ -88,27 +94,6 @@ impl<'a> GridNumber<'a> {
 
     GridNumber { cells, total }
   }
-
-  fn get_neighbors(&'a self, grid: &'a Grid) -> impl Iterator<Item = &Cell> {
-    self
-      .cells
-      .iter()
-      .map(|cell| {
-        grid
-          .get_cell_neighbors(cell)
-          .into_iter()
-          .filter(|cell_neighbor| !self.cells.contains(&cell_neighbor))
-      })
-      .flatten()
-      .dedup()
-  }
-
-  fn get_valid_symbol_neighbors(&self, grid: &'a Grid) -> Vec<&Cell> {
-    self
-      .get_neighbors(grid)
-      .filter(|neighbor| neighbor.is_valid_symbol())
-      .collect::<Vec<_>>()
-  }
 }
 
 impl<'a> PartialEq for GridNumber<'a> {
@@ -117,9 +102,11 @@ impl<'a> PartialEq for GridNumber<'a> {
   }
 }
 
+// Grid of characters
 struct Grid {
   cells: Vec<Cell>,
   max_position: Position,
+  cell_position_map: HashMap<String, Cell>,
 }
 
 impl Grid {
@@ -140,7 +127,7 @@ impl Grid {
           })
       })
       .collect::<Vec<_>>();
-  
+
     let max_position = cells
       .iter()
       .fold(Position::zero(), |mut acc, cell| {
@@ -155,7 +142,21 @@ impl Grid {
         acc
       });
 
-    Grid { cells, max_position }
+    let cell_position_map = cells
+      .iter()
+      .fold(HashMap::new(), |mut acc, cell| {
+        let key = cell.position.as_key();
+        // I don't really like cloning this here, but it's much easier
+        // Than wrapping everything in Rc
+        acc.insert(key, cell.clone());
+        acc
+      });
+
+    Grid {
+      cells,
+      max_position,
+      cell_position_map,
+    }
   }
 
   fn is_valid_cell_position(&self, position: &Position) -> bool {
@@ -175,20 +176,30 @@ impl Grid {
   }
 
   // It is assumed that target_cell is a cell in this Grid
-  fn get_cell_neighbors(&self, target_cell: &Cell) -> Vec<&Cell> {
+  fn get_cell_neighbors(&self, target_cell: &Cell) -> impl Iterator<Item = &Cell> {
     self
       .get_valid_neighbor_positions(&target_cell)
       .into_iter()
       .map(|position| {
-        self
+        let cell_from_map = self
+          .cell_position_map
+          .get(&position.as_key())
+          .unwrap();
+
+        // My original solution found cells like this, which added ~2s to the overall
+        // computation time every time this function was called, for the input.txt data set (140x140)
+        /*
+        let cell_from_list = self
           .cells
           .iter()
           .find(|cell| cell.position == position)
           // get_valid_neighbor_positions ensures there will be a neighbor at that position
           // so unwrapping here is ok
-          .unwrap()
+          .unwrap();
+        */
+
+        cell_from_map
       })
-      .collect::<Vec<_>>()
   }
 
   fn get_grid_numbers(&self) -> Vec<GridNumber> {
@@ -211,11 +222,34 @@ impl Grid {
     result
   }
 
+  fn get_grid_number_symbol_neighbors<'a>(
+    &'a self,
+    gridnumber: &'a GridNumber,
+  ) -> impl Iterator<Item = &'a Cell> {
+    gridnumber
+      .cells
+      .iter()
+      .map(|cell| {
+        self
+          .get_cell_neighbors(cell)
+          .into_iter()
+          .filter(|cell_neighbor| !gridnumber.cells.contains(&cell_neighbor))
+      })
+      .flatten()
+      .dedup()
+      .filter(|neighbor| neighbor.is_valid_symbol())
+  }
+
   fn get_valid_grid_numbers(&self) -> impl Iterator<Item = GridNumber> {
     self
       .get_grid_numbers()
       .into_iter()
-      .filter(|n| n.get_valid_symbol_neighbors(self).len() > 0)
+      .filter(|gridnumber| {
+        let neighbors = self
+          .get_grid_number_symbol_neighbors(gridnumber)
+          .collect::<Vec<_>>();
+        neighbors.len() > 0
+      })
   }
 
   fn get_valid_grid_number_sum(&self) -> u32 {
@@ -237,23 +271,16 @@ impl Grid {
         self
           // Find digit cell neighbors first
           .get_cell_neighbors(gear_cell)
-          .iter()
           .filter(|cell| cell.is_digit())
           // then map digit cells to gridnumber
           .map(|cell| {
             gridnumbers
               .iter()
-              .find(|gridnumber| gridnumber.cells.contains(cell))
+              .find(|gridnumber| gridnumber.cells.contains(&cell))
               .unwrap()
           })
-          // de-dupe
-          .fold(Vec::new(), |mut neighbors, gridnumber| {
-            if !neighbors.contains(&gridnumber) {
-              neighbors.push(gridnumber);
-            }
-
-            neighbors
-          })
+          .dedup()
+          .collect::<Vec<_>>()
       })
       // Gears without exactly 2 gridnumber neighbors are invalid
       .filter(|neighbors| neighbors.len() == 2)
