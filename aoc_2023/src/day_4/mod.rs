@@ -4,7 +4,36 @@ const EXAMPLE_INPUT_FILENAME: &str = "./src/day_4/example_input.txt";
 const INPUT_FILENAME: &str = "./src/day_4/input.txt";
 
 pub fn part_1(contents: &str) -> u32 {
-  0
+  contents
+    .lines()
+    .map(|line| {
+      let (_, number_groups) = line.split_once(":").unwrap();
+      let (raw_winning_numbers, raw_my_numbers) = number_groups.split_once("|").unwrap();
+
+      let winning_numbers = raw_winning_numbers
+        .trim()
+        .split(" ")
+        .filter(|num| num.len() > 0)
+        .collect::<Vec<_>>();
+
+      let my_numbers = raw_my_numbers
+        .trim()
+        .split(" ")
+        .filter(|num| num.len() > 0)
+        .collect::<Vec<_>>();
+
+      my_numbers.iter().fold(0, |acc, number| {
+        if winning_numbers.contains(number) {
+          match acc {
+            0 => 1,
+            _ => acc * 2,
+          }
+        } else {
+          acc
+        }
+      })
+    })
+    .fold(0, |acc, card_points| acc + card_points)
 }
 
 pub fn run() -> Result<(), std::io::Error> {
@@ -14,9 +43,6 @@ pub fn run() -> Result<(), std::io::Error> {
 
   let part_1_total = part_1(&contents);
   println!("part_1 total {}", part_1_total);
-
-  // let part_2_total = part_2(&contents);
-  // println!("part_2 total {}", part_2_total);
 
   Ok(())
 }
@@ -33,12 +59,10 @@ mod tests {
     assert_eq!(result, 13);
   }
 
-  /*
   #[test]
-  pub fn day_3_part_1_solution_works() {
+  pub fn day_4_part_1_solution_works() {
     let contents = read_input(INPUT_FILENAME).unwrap();
     let result = part_1(&contents);
-    // assert_eq!(result, 4361);
+    assert_eq!(result, 18519);
   }
-  */
 }
