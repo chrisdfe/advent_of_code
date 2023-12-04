@@ -4,37 +4,33 @@ use crate::utils::read_input;
 
 const INPUT_FILENAME: &str = "./src/day_4/input.txt";
 
+#[derive(Clone)]
+struct Card<'a> {
+  winning_numbers: Vec<&'a str>,
+  numbers: Vec<&'a str>,
+}
+
+impl<'a> Card<'a> {
+  fn from_input(line: &str) -> Card {
+    let (_, number_groups) = line.split_once(":").unwrap();
+    let (raw_winning_numbers, raw_numbers) = number_groups.split_once("|").unwrap();
+
+    let winning_numbers = get_number_list_from_string(raw_winning_numbers);
+    let numbers = get_number_list_from_string(raw_numbers);
+
+    Card {
+      winning_numbers,
+      numbers,
+    }
+  }
+}
+
 fn get_number_list_from_string(input: &str) -> Vec<&str> {
   input
     .trim()
     .split(" ")
     .filter(|num| num.len() > 0)
     .collect::<Vec<_>>()
-}
-
-#[derive(Clone)]
-struct Card<'a> {
-  number: u32,
-  winning_numbers: Vec<&'a str>,
-  my_numbers: Vec<&'a str>,
-}
-
-impl<'a> Card<'a> {
-  fn from_input(line: &str) -> Card {
-    let (card_title, number_groups) = line.split_once(":").unwrap();
-    let (_, raw_card_number) = card_title.split_once("Card ").unwrap();
-    let number = raw_card_number.trim().parse::<u32>().unwrap();
-    let (raw_winning_numbers, raw_my_numbers) = number_groups.split_once("|").unwrap();
-
-    let winning_numbers = get_number_list_from_string(raw_winning_numbers);
-    let my_numbers = get_number_list_from_string(raw_my_numbers);
-
-    Card {
-      number,
-      winning_numbers,
-      my_numbers,
-    }
-  }
 }
 
 fn create_cards_from_input(input: &str) -> Vec<Card<'_>> {
@@ -44,23 +40,11 @@ fn create_cards_from_input(input: &str) -> Vec<Card<'_>> {
     .collect::<Vec<_>>()
 }
 
-// key = card number, value = instances of that card
-type CardCountMap = HashMap<u32, u32>;
-
-fn create_default_card_count_map<'a>(cards: &Vec<Card<'_>>) -> CardCountMap {
-  cards
-    .iter()
-    .fold(HashMap::new(), |mut acc, card| {
-      acc.insert(card.number, 1);
-      acc
-    })
-}
-
 fn part_1(contents: &str) -> u32 {
   create_cards_from_input(contents)
     .iter()
     .map(|card| {
-      card.my_numbers.iter().fold(0, |acc, number| {
+      card.numbers.iter().fold(0, |acc, number| {
         if card.winning_numbers.contains(number) {
           match acc {
             0 => 1,
@@ -76,32 +60,30 @@ fn part_1(contents: &str) -> u32 {
 
 fn part_2(contents: &str) -> u32 {
   let cards = create_cards_from_input(contents);
-  let starting_map = create_default_card_count_map(&cards);
 
-  let card_count_map: CardCountMap = cards.iter().fold(starting_map, |mut acc, card| {
-    let winning_number_count = card.my_numbers.iter().fold(0, |acc, number| {
-      if card.winning_numbers.contains(number) {
-        acc + 1
-      } else {
+  let card_instances =
+    cards
+      .iter()
+      .enumerate()
+      .fold(vec![1; cards.len()], |mut acc, (index, card)| {
+        let winning_number_count = card.numbers.iter().fold(0, |acc, number| {
+          if card.winning_numbers.contains(number) {
+            acc + 1
+          } else {
+            acc
+          }
+        });
+
+        let current_card_count = acc.get(index).unwrap().clone();
+        for card_number in index + 1..index + 1 + winning_number_count {
+          acc[card_number] += current_card_count;
+        }
+
         acc
-      }
-    });
+      });
 
-    let current_card_count = acc.get(&card.number).unwrap().clone();
-    for card_number in card.number + 1..card.number + 1 + winning_number_count {
-      // If the card number is out of bounds this will fail
-      if let Some(current_count) = acc.get(&card_number) {
-        acc
-          .insert(card_number, current_count + current_card_count)
-          .unwrap();
-      }
-    }
-
-    acc
-  });
-
-  card_count_map
-    .values()
+  card_instances
+    .iter()
     .fold(0, |acc, number| acc + number)
 }
 
