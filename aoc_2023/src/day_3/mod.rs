@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::io::Error;
 
 use crate::utils::read_input;
@@ -18,20 +19,20 @@ impl Position {
     Position { x: 0, y: 0 }
   }
 
-  fn get_neighbor_positions(&self) -> Vec<Position> {
-    let x_neighbors = NEIGHBOR_RANGE.clone();
-    let y_neighbors = NEIGHBOR_RANGE.clone();
-
-    x_neighbors
-      .into_iter()
-      .flat_map(|x| {
-        y_neighbors.into_iter().map(move |y| Position {
-          x: self.x + x as i32,
-          y: self.y + y as i32,
-        })
-      })
-      .filter(|pos| pos != self)
-      .collect::<Vec<_>>()
+  #[rustfmt::skip]
+  fn get_neighbor_positions(&self) -> [Position; 8] {
+    [
+      Position { x: self.x - 1, y: self.y - 1},
+      Position { x: self.x, y: self.y - 1},
+      Position { x: self.x + 1, y: self.y - 1},
+      
+      Position { x: self.x - 1, y: self.y },
+      Position { x: self.x + 1, y: self.y },
+      
+      Position { x: self.x - 1, y: self.y + 1},
+      Position { x: self.x, y: self.y + 1},
+      Position { x: self.x + 1, y: self.y + 1},
+    ]
   }
 }
 
@@ -88,26 +89,23 @@ impl<'a> GridNumber<'a> {
     GridNumber { cells, total }
   }
 
-  fn get_neighbors(&'a self, grid: &'a Grid) -> Vec<&Cell> {
+  fn get_neighbors(&'a self, grid: &'a Grid) -> impl Iterator<Item = &Cell> {
     self
       .cells
       .iter()
-      .fold(Vec::new(), |mut acc, cell| {
-        let neighbors = grid.get_cell_neighbors(cell);
-
-        for neighbor in neighbors {
-          if !acc.contains(&neighbor) && !self.cells.contains(&neighbor) {
-            acc.push(neighbor);
-          }
-        }
-        acc
+      .map(|cell| {
+        grid
+          .get_cell_neighbors(cell)
+          .into_iter()
+          .filter(|cell_neighbor| !self.cells.contains(&cell_neighbor))
       })
+      .flatten()
+      .dedup()
   }
 
   fn get_valid_symbol_neighbors(&self, grid: &'a Grid) -> Vec<&Cell> {
     self
       .get_neighbors(grid)
-      .into_iter()
       .filter(|neighbor| neighbor.is_valid_symbol())
       .collect::<Vec<_>>()
   }
@@ -121,6 +119,7 @@ impl<'a> PartialEq for GridNumber<'a> {
 
 struct Grid {
   cells: Vec<Cell>,
+  max_position: Position,
 }
 
 impl Grid {
@@ -141,13 +140,8 @@ impl Grid {
           })
       })
       .collect::<Vec<_>>();
-
-    Grid { cells }
-  }
-
-  fn get_max_position(&self) -> Position {
-    self
-      .cells
+  
+    let max_position = cells
       .iter()
       .fold(Position::zero(), |mut acc, cell| {
         if cell.position.x > acc.x {
@@ -159,15 +153,16 @@ impl Grid {
         }
 
         acc
-      })
+      });
+
+    Grid { cells, max_position }
   }
 
   fn is_valid_cell_position(&self, position: &Position) -> bool {
-    let max_position = self.get_max_position();
     position.x >= 0
       && position.y >= 0
-      && position.x <= max_position.x
-      && position.y <= max_position.y
+      && position.x <= self.max_position.x
+      && position.y <= self.max_position.y
   }
 
   fn get_valid_neighbor_positions(&self, cell: &Cell) -> Vec<Position> {
@@ -185,67 +180,47 @@ impl Grid {
       .get_valid_neighbor_positions(&target_cell)
       .into_iter()
       .map(|position| {
-        let result = self
+        self
           .cells
           .iter()
           .find(|cell| cell.position == position)
           // get_valid_neighbor_positions ensures there will be a neighbor at that position
           // so unwrapping here is ok
-          .unwrap();
-
-        result
+          .unwrap()
       })
       .collect::<Vec<_>>()
   }
 
-  fn get_cells_grouped_by_line(&self) -> Vec<Vec<&Cell>> {
-    self
-      .cells
-      .iter()
-      .fold(Vec::new(), |mut acc, cell| {
-        let y_idx = cell.position.y as usize;
-        if y_idx as isize > acc.len() as isize - 1 {
-          acc.push(Vec::new())
-        }
-
-        acc[y_idx].push(cell);
-        acc
-      })
-  }
-
   fn get_grid_numbers(&self) -> Vec<GridNumber> {
     let mut result = Vec::new();
+
     let mut cell_buffer: Vec<&Cell> = Vec::new();
 
-    for line in self.get_cells_grouped_by_line() {
-      for cell in line {
-        if cell.value.is_digit(10) {
-          cell_buffer.push(cell);
-        } else {
-          if cell_buffer.len() > 0 {
-            result.push(GridNumber::new(cell_buffer))
-          }
-
-          cell_buffer = Vec::new();
+    for cell in self.cells.iter() {
+      if cell.value.is_digit(10) {
+        cell_buffer.push(&cell);
+      } else {
+        if cell_buffer.len() > 0 {
+          result.push(GridNumber::new(cell_buffer))
         }
+
+        cell_buffer = Vec::new();
       }
     }
 
     result
   }
 
-  fn get_valid_grid_numbers(&self) -> Vec<GridNumber> {
+  fn get_valid_grid_numbers(&self) -> impl Iterator<Item = GridNumber> {
     self
       .get_grid_numbers()
       .into_iter()
       .filter(|n| n.get_valid_symbol_neighbors(self).len() > 0)
-      .collect::<Vec<_>>()
   }
 
   fn get_valid_grid_number_sum(&self) -> u32 {
     self
       .get_valid_grid_numbers()
-      .into_iter()
       .fold(0, |acc, grid_number| acc + grid_number.total)
   }
 
@@ -284,15 +259,11 @@ impl Grid {
       .filter(|neighbors| neighbors.len() == 2)
       // Add total
       .fold(0, |acc, neighbors| {
-        let neighbors_sum = neighbors.iter().fold(0, |acc, neighbor| {
-          let neighbor_total = neighbor.total;
-
-          if acc == 0 {
-            neighbor_total
-          } else {
-            acc * neighbor_total
-          }
-        });
+        let neighbors_sum = neighbors
+          .iter()
+          .map(|neighbor| neighbor.total)
+          .reduce(|acc, total| acc * total)
+          .unwrap();
 
         acc + neighbors_sum
       })
@@ -341,7 +312,7 @@ mod tests {
   pub fn day_3_part_1_solution_works() {
     let contents = read_input(INPUT_FILENAME).unwrap();
     let result = part_1(&contents);
-    assert!(result > 560570);
+    // assert!(result > 560570);
     assert_eq!(result, 560670);
   }
 
