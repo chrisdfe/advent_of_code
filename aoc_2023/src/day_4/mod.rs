@@ -61,26 +61,26 @@ fn part_1(contents: &str) -> u32 {
 fn part_2(contents: &str) -> u32 {
   let cards = create_cards_from_input(contents);
 
-  let card_instances =
-    cards
-      .iter()
-      .enumerate()
-      .fold(vec![1; cards.len()], |mut acc, (index, card)| {
-        let winning_number_count = card.numbers.iter().fold(0, |acc, number| {
-          if card.winning_numbers.contains(number) {
-            acc + 1
-          } else {
-            acc
-          }
-        });
-
-        let current_card_count = acc.get(index).unwrap().clone();
-        for card_number in index + 1..index + 1 + winning_number_count {
-          acc[card_number] += current_card_count;
+  let card_instances = cards
+    .iter()
+    .enumerate()
+    // accumulator = key: card idx & value: number of instances of that card
+    .fold(vec![1; cards.len()], |mut acc, (index, card)| {
+      let winning_number_count = card.numbers.iter().fold(0, |acc, number| {
+        if card.winning_numbers.contains(number) {
+          acc + 1
+        } else {
+          acc
         }
-
-        acc
       });
+
+      let current_card_count = acc.get(index).unwrap().clone();
+      for card_number in index + 1..index + 1 + winning_number_count {
+        acc[card_number] += current_card_count;
+      }
+
+      acc
+    });
 
   card_instances
     .iter()

@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+const INPUT_FILENAME: &str = "./src/day_1/input.txt";
+
 fn get_digit_word_map() -> HashMap<&'static str, usize> {
   HashMap::from([
     ("one", 1),
@@ -12,6 +14,41 @@ fn get_digit_word_map() -> HashMap<&'static str, usize> {
     ("eight", 8),
     ("nine", 9),
   ])
+}
+
+fn part_1_process_line(line: &str) -> u32 {
+  let numbers: Vec<u32> = line
+    .chars()
+    .into_iter()
+    .fold(Vec::new(), |mut acc, char| {
+      match char.to_string().parse::<u32>() {
+        Ok(char_string_as_uint) => {
+          acc.push(char_string_as_uint);
+          acc
+        }
+        Err(_) => acc,
+      }
+    });
+
+  let first_and_last = match numbers.len() {
+    n if n >= 2 => {
+      let first = *numbers.first().unwrap();
+      let last = *numbers.last().unwrap();
+
+      Some((first, last))
+    }
+    1 => Some((numbers[0], numbers[0])),
+    _ => None,
+  };
+
+  if let Some((first, last)) = first_and_last {
+    let result_as_string = format!("{}{}", first, last);
+
+    // I can probably assume unwrapping is okay here
+    result_as_string.parse::<u32>().unwrap()
+  } else {
+    0
+  }
 }
 
 fn parse_slice_as_uint(slice: &str) -> Result<usize, ()> {
@@ -54,7 +91,7 @@ fn find_digit_in_slices(slices: Vec<&str>) -> Option<usize> {
   None
 }
 
-fn process_line(line: &str) -> u32 {
+fn part_2_process_line(line: &str) -> u32 {
   // Search for first number
   let first = {
     let forward_slices = (0..line.len())
@@ -94,15 +131,68 @@ fn process_line(line: &str) -> u32 {
   }
 }
 
-// too high: 56175
-// wrong: 56138
-// wrong: 55255
-// wrong: 43684
-// wrong: 53222
-// correct: 55260
-pub fn run(contents: &str) -> u32 {
+fn part_1(contents: &str) -> u32 {
   contents
     .lines()
     .into_iter()
-    .fold(0, |acc, line| acc + process_line(&line))
+    .fold(0, |acc, line| acc + part_1_process_line(&line))
+}
+
+fn part_2(contents: &str) -> u32 {
+  contents
+    .lines()
+    .into_iter()
+    .fold(0, |acc, line| acc + part_2_process_line(&line))
+}
+
+pub fn run() -> Result<(), std::io::Error> {
+  println!("running day 1");
+  println!("reading contents of {}", INPUT_FILENAME);
+  let contents = crate::utils::read_input(INPUT_FILENAME)?;
+
+  let result = part_1(&contents);
+  println!("part one result: {}", result);
+
+  let result = part_2(&contents);
+  println!("part two result: {}", result);
+
+  Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::utils::read_input;
+
+  use super::{part_1, part_2, INPUT_FILENAME};
+
+  const PART_1_EXAMPLE_INPUT_FILENAME: &str = "./src/day_1/part_1_example_input.txt";
+  const PART_2_EXAMPLE_INPUT_FILENAME: &str = "./src/day_1/part_2_example_input.txt";
+
+  #[test]
+  pub fn day_1_part_1_example_works() {
+    let contents = read_input(PART_1_EXAMPLE_INPUT_FILENAME).unwrap();
+    let result = part_1(&contents);
+    assert_eq!(result, 142);
+  }
+
+  #[test]
+  pub fn day_1_part_1_solution_works() {
+    let contents = read_input(INPUT_FILENAME).unwrap();
+    let result = part_1(&contents);
+    assert_eq!(result, 55123);
+  }
+
+  #[test]
+  pub fn day_1_part_2_example_works() {
+    let contents = read_input(PART_2_EXAMPLE_INPUT_FILENAME).unwrap();
+    let result = part_2(&contents);
+    assert_eq!(result, 281);
+  }
+
+  #[test]
+  pub fn day_1_part_2_solution_works() {
+    let contents = read_input(INPUT_FILENAME).unwrap();
+    let result = part_2(&contents);
+    assert_eq!(result, 55260);
+  }
 }
