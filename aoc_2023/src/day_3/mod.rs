@@ -6,7 +6,7 @@ use crate::utils::read_input;
 pub const INPUT_FILENAME: &'static str = "./src/day_3/input.txt";
 pub const EXAMPLE_INPUT_FILENAME: &'static str = "./src/day_3/example_input.txt";
 
-// Cloneable struct representing an abstract 2D
+// Cloneable struct representing an abstract 2D position
 #[derive(Debug, Clone)]
 struct Position {
   x: i32,
