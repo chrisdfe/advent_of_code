@@ -4,6 +4,7 @@ mod day_3;
 mod day_4;
 mod day_5;
 mod day_6;
+mod day_7;
 mod utils;
 
 fn main() -> Result<(), std::io::Error> {
@@ -16,7 +17,7 @@ fn main() -> Result<(), std::io::Error> {
       "day_3" => day_3::run()?,
       "day_4" => day_4::run()?,
       "day_5" => day_5::run()?,
-      "day_6" => day_6::run()?,
+      "day_6" => day_7::run()?,
       value => {
         println!("{value} not recognized")
       }
@@ -29,6 +30,7 @@ fn main() -> Result<(), std::io::Error> {
     day_4::run()?;
     day_5::run()?;
     day_6::run()?;
+    day_7::run()?;
   };
 
   Ok(())
