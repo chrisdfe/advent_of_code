@@ -48,15 +48,52 @@ fn part_1(input: &str) -> u64 {
       'R' => right,
       other => panic!("Unsupported instruction found: {}", other),
     };
-    println!("current_key: {}", current_key);
-    println!("instruction: {}", instruction);
   }
 
   steps
 }
 
 fn part_2(input: &str) -> u64 {
-  0
+  let (instructions, element_map) = get_instructions_and_element_map_from_input(input);
+
+  let element_map_keys = element_map.keys();
+
+  let mut instructions_iter = instructions.into_iter().cycle();
+  let mut steps = 0;
+  let mut current_keys = element_map_keys
+    .filter(|key| key.ends_with('A'))
+    .collect::<Vec<_>>();
+
+  let mut number_of_keys_ending_with_z = 0;
+  let target_number_of_keys_ending_with_z = current_keys.len();
+
+  println!("{:?}", current_keys);
+
+  while number_of_keys_ending_with_z < target_number_of_keys_ending_with_z {
+    let instruction = instructions_iter.next().unwrap();
+
+    current_keys = current_keys
+      .into_iter()
+      .map(|current_key| {
+        let (left, right) = element_map.get(current_key).unwrap();
+        match instruction {
+          'L' => left,
+          'R' => right,
+          other => panic!("Unsupported instruction found: {}", other),
+        }
+      })
+      .collect::<Vec<_>>();
+
+    number_of_keys_ending_with_z = current_keys
+      .iter()
+      .filter(|key| key.ends_with('Z'))
+      .collect::<Vec<_>>()
+      .len();
+
+    steps += 1;
+  }
+
+  steps
 }
 
 pub fn run() -> Result<(), std::io::Error> {
@@ -66,23 +103,26 @@ pub fn run() -> Result<(), std::io::Error> {
   let part_1_total = part_1(&input);
   println!("part_1 total {}", part_1_total);
 
-  // let part_2_total = part_2(&contents);
-  // println!("part_2 total {}", part_2_total);
+  let part_2_total = part_2(&input);
+  println!("part_2 total {}", part_2_total);
 
   Ok(())
 }
 
 #[cfg(test)]
 mod tests {
+  use more_asserts::assert_gt;
+
   use crate::utils::read_input;
 
   use super::{part_1, part_2, INPUT_FILENAME};
 
-  const EXAMPLE_INPUT_FILENAME: &str = "./src/day_8/example_input.txt";
+  const PART_1_EXAMPLE_INPUT_FILENAME: &str = "./src/day_8/part_1_example_input.txt";
+  const PART_2_EXAMPLE_INPUT_FILENAME: &str = "./src/day_8/part_2_example_input.txt";
 
   #[test]
   pub fn day_8_part_1_example_works() {
-    let contents = read_input(EXAMPLE_INPUT_FILENAME).unwrap();
+    let contents = read_input(PART_1_EXAMPLE_INPUT_FILENAME).unwrap();
     let result = part_1(&contents);
     assert_eq!(result, 6);
   }
@@ -96,9 +136,9 @@ mod tests {
 
   #[test]
   pub fn day_8_part_2_example_works() {
-    let contents = read_input(EXAMPLE_INPUT_FILENAME).unwrap();
+    let contents = read_input(PART_2_EXAMPLE_INPUT_FILENAME).unwrap();
     let result = part_2(&contents);
-    assert_eq!(result, 5905);
+    assert_eq!(result, 6);
   }
 
   // #[test]
@@ -107,7 +147,7 @@ mod tests {
 
   //   let contents = read_input(INPUT_FILENAME).unwrap();
   //   let result = part_2(&contents);
-  //   assert_gt!(result, 248673364);
-  //   assert_eq!(result, 248747492);
+  //   assert_gt!(result, 21409);
+  //   // assert_eq!(result, 248747492);
   // }
 }
