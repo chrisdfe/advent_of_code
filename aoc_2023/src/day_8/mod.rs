@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use itertools::Itertools;
+
 pub const INPUT_FILENAME: &str = "src/day_8/input.txt";
 
 fn get_instructions_and_element_map_from_input(
@@ -53,47 +55,56 @@ fn part_1(input: &str) -> u64 {
   steps
 }
 
+// Recursive function to return gcd of a and b
+fn gcd(a: u64, b: u64) -> u64 {
+  if a == 0 {
+    b
+  } else {
+    gcd(b % a, a)
+  }
+}
+
+// Function to return LCM of two numbers
+fn lcm(a: u64, b: u64) -> u64 {
+  (a / gcd(a, b)) * b
+}
+
 fn part_2(input: &str) -> u64 {
   let (instructions, element_map) = get_instructions_and_element_map_from_input(input);
 
   let element_map_keys = element_map.keys();
 
-  let mut instructions_iter = instructions.into_iter().cycle();
-  let mut steps = 0;
-  let mut current_keys = element_map_keys
+  let starting_keys = element_map_keys
     .filter(|key| key.ends_with('A'))
+    .map(|key| *key)
     .collect::<Vec<_>>();
 
-  let mut number_of_keys_ending_with_z = 0;
-  let target_number_of_keys_ending_with_z = current_keys.len();
+  println!("starting_keys: {:?}", starting_keys);
 
-  println!("{:?}", current_keys);
+  let path_lengths = starting_keys.into_iter().map(|starting_key| {
+    let mut length = 0;
+    let mut instructions_iter = instructions.iter().cycle();
+    let mut current_key = starting_key.clone();
+    while !current_key.ends_with('Z') {
+      let instruction = instructions_iter.next().unwrap();
 
-  while number_of_keys_ending_with_z < target_number_of_keys_ending_with_z {
-    let instruction = instructions_iter.next().unwrap();
+      let (left, right) = element_map.get(current_key).unwrap();
+      current_key = match instruction {
+        'L' => &left,
+        'R' => &right,
+        other => panic!("Unsupported instruction found: {}", other),
+      };
 
-    current_keys = current_keys
-      .into_iter()
-      .map(|current_key| {
-        let (left, right) = element_map.get(current_key).unwrap();
-        match instruction {
-          'L' => left,
-          'R' => right,
-          other => panic!("Unsupported instruction found: {}", other),
-        }
-      })
-      .collect::<Vec<_>>();
+      length += 1;
+    }
 
-    number_of_keys_ending_with_z = current_keys
-      .iter()
-      .filter(|key| key.ends_with('Z'))
-      .collect::<Vec<_>>()
-      .len();
+    length
+  });
 
-    steps += 1;
-  }
-
-  steps
+  // recursively calculate lcm
+  path_lengths
+    .reduce(|acc, length| lcm(acc, length))
+    .unwrap()
 }
 
 pub fn run() -> Result<(), std::io::Error> {
@@ -141,13 +152,13 @@ mod tests {
     assert_eq!(result, 6);
   }
 
-  // #[test]
-  // pub fn day_8_part_2_solution_works() {
-  //   use more_asserts::assert_gt;
+  #[test]
+  pub fn day_8_part_2_solution_works() {
+    use more_asserts::assert_gt;
 
-  //   let contents = read_input(INPUT_FILENAME).unwrap();
-  //   let result = part_2(&contents);
-  //   assert_gt!(result, 21409);
-  //   // assert_eq!(result, 248747492);
-  // }
+    let contents = read_input(INPUT_FILENAME).unwrap();
+    let result = part_2(&contents);
+    assert_gt!(result, 21409);
+    assert_eq!(result, 9064949303801);
+  }
 }
