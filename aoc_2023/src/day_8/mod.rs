@@ -108,7 +108,7 @@ fn part_2(input: &str) -> u64 {
 }
 
 pub fn run() -> Result<(), std::io::Error> {
-  println!("running day 7");
+  println!("running day 8");
   let input = crate::utils::read_input(INPUT_FILENAME)?;
 
   let part_1_total = part_1(&input);
